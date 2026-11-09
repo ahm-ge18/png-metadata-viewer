@@ -151,6 +151,7 @@ js/app.js               rendering, interactions, JSON export
 test/parser.test.mjs    automated parser tests with in-memory PNG fixtures
 docs/screenshot.png     the image at the top of this README
 package.json            test/start shortcuts (no runtime dependencies)
+LICENSE                 MIT licence
 ```
 
 There are **no libraries** and no build tools. The code is plain HTML, CSS and JavaScript.
