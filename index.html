@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem('png-inspect-theme');
+    if (saved !== 'light' && saved !== 'dark') {
+      saved = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    }
+    document.documentElement.setAttribute('data-theme', saved);
+  } catch (e) { /* keep the default */ }
+})();
+</script>
+<title>png.inspect — every byte a PNG carries</title>
+<meta name="description" content="Drop a PNG to read its header, physical size, colour chunks, text entries and the full chunk map. Parsed locally in your browser; nothing is uploaded.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b0c0e'/%3E%3Cpath d='M8 22V10h7a5 5 0 0 1 0 10h-3' stroke='%23c8f751' stroke-width='2.6' fill='none' stroke-linecap='square'/%3E%3Ccircle cx='23' cy='22' r='2' fill='%23c8f751'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<noscript><p class="noscript">This viewer parses PNG bytes in your browser, so JavaScript is required. Nothing is ever uploaded.</p></noscript>
+<div class="page-glow" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="container topbar-inner">
+    <a class="brand" href="./" aria-label="png.inspect home">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+          <rect x="3" y="3" width="18" height="18" rx="4.5"/>
+          <path d="M3 9.5h18M9.5 21V9.5"/>
+          <circle cx="17" cy="5.9" r="1.1" fill="currentColor" stroke="none"/>
+        </svg>
+      </span>
+      <span class="brand-name">png<span class="brand-dim">.inspect</span></span>
+    </a>
+    <div class="topbar-actions">
+      <span class="privacy" title="This page makes no request with your file.">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+          <rect x="4" y="10" width="16" height="10" rx="2.5"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10"/>
+        </svg>
+        Runs on your device
+      </span>
+      <button class="icon-btn" id="themeToggle" type="button" aria-label="Switch colour theme" title="Switch theme">
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+          <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/>
+        </svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+          <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+  <section class="hero" id="hero">
+    <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span> PNG metadata reader</p>
+    <h1>Every byte a PNG<br><em>carries</em> with it.</h1>
+    <p class="lede">
+      Dimensions, bit depth, DPI, gamma, ICC profile, time, text entries and the full chunk map —
+      read straight from the file's bytes. Nothing is decoded, re-saved or sent anywhere.
+    </p>
+
+    <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Drop a PNG here or press Enter to browse">
+      <input type="file" id="fileInput" accept="image/png,.png" hidden>
+      <div class="dz-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+          <path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/>
+          <path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/>
+        </svg>
+      </div>
+      <p class="dz-title">Drop a PNG here</p>
+      <p class="dz-sub">or <span class="u">browse files</span> <span class="dz-dot">·</span> <kbd>Ctrl/⌘ V</kbd> to paste</p>
+      <p class="dz-meta">One file at a time · up to 100 MB · parsed offline</p>
+    </div>
+
+    <ul class="hero-notes">
+      <li><span class="note-k">01</span> Header, DPI, time</li>
+      <li><span class="note-k">02</span> Colour &amp; ICC</li>
+      <li><span class="note-k">03</span> Text entries</li>
+      <li><span class="note-k">04</span> Full chunk map</li>
+    </ul>
+  </section>
+
+  <section class="result" id="result" hidden aria-live="polite">
+    <div class="result-grid">
+      <aside class="preview-col">
+        <div class="preview-frame checker">
+          <img id="preview" alt="Preview of the loaded PNG">
+        </div>
+        <p class="preview-caption" id="previewCaption"></p>
+        <p class="preview-meta" id="previewMeta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+            <rect x="4" y="10" width="16" height="10" rx="2.5"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10"/>
+          </svg>
+          Local file — never uploaded
+        </p>
+        <div class="preview-rail">
+          <div class="rail-row"><span>Signature</span><code>89 50 4E 47 0D 0A 1A 0A</code></div>
+          <div class="rail-row"><span>File bytes</span><code id="railBytes">—</code></div>
+          <div class="rail-row"><span>Chunks</span><code id="railChunks">—</code></div>
+          <div class="rail-row"><span>Parsed in</span><code id="railTime">—</code></div>
+        </div>
+      </aside>
+
+      <div class="result-main">
+        <div class="file-head">
+          <div class="file-title">
+            <h2 id="fileName"></h2>
+            <p class="file-sub" id="fileSub"></p>
+          </div>
+          <div class="file-actions">
+            <button class="btn btn-primary" id="copyJson" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+                <rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 5.5A1.5 1.5 0 0 0 13.5 4H5.5A1.5 1.5 0 0 0 4 5.5v8A1.5 1.5 0 0 0 5.5 15"/>
+              </svg>
+              <span>Copy JSON</span>
+            </button>
+            <button class="btn" id="downloadJson" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+                <path d="M12 4v11m0 0 4-4m-4 4-4-4"/><path d="M4 18.5h16"/>
+              </svg>
+              <span>Download</span>
+            </button>
+            <button class="btn" id="resetBtn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+                <path d="M12 5v14M5 12h14"/>
+              </svg>
+              <span>New file</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="status-strip" id="statusStrip"></div>
+        <div class="facts" id="facts"></div>
+        <div id="sections"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="container footer-inner">
+    <p>Reads the PNG specification, not the picture. No uploads, no accounts, no network calls.</p>
+    <p class="footer-mono">8-byte signature · chunked · CRC-32 checked</p>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="drop-overlay" id="dropOverlay" aria-hidden="true">
+  <div class="drop-overlay-inner">
+    <p>Release to inspect</p>
+    <span>PNG only · the current file will be replaced</span>
+  </div>
+</div>
+
+<script src="js/png.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

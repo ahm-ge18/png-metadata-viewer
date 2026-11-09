@@ -1,0 +1,12 @@
+{
+  "name": "png-inspect",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A local-only, dependency-free PNG metadata viewer.",
+  "scripts": {
+    "test": "node test/parser.test.mjs",
+    "start": "npx --yes serve ."
+  },
+  "keywords": ["png", "metadata", "exif", "chunks", "viewer"],
+  "license": "MIT"
+}
